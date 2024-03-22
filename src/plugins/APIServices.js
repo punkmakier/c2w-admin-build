@@ -162,5 +162,13 @@ export const AdminAPIRequest = {
     },
     postCloseArena: async (data) => {
         return await postDec('/api/sabong/closeArena', data);
+    },
+
+    // LOTTERY
+    postLotteryDeclare: async (data) => {
+        return await postDec('/api/lottery/declare', data);
+    },
+    postLotteryFetchGame: async (data) => {
+        return await postDec('/api/lottery/fetchGame', data);
     }
 };

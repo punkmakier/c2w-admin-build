@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, reactive } from 'vue';
+import { ref, onMounted, reactive, watch } from 'vue';
 import { useConfirm } from 'primevue/useconfirm';
 import { AdminAPIRequest as axios } from '@/plugins/APIServices';
 import { useToast } from 'primevue/usetoast';
@@ -26,7 +26,8 @@ const regladaData = ref([]);
 const regladaDataStraight = ref([]);
 const arenaClose = ref(false);
 const redecBtnLoading = ref(false);
-
+const editReglada = ref([]);
+const isChecked = ref(false);
 const sabongData = reactive({
     arenaID: null,
     gameID: null,
@@ -43,7 +44,16 @@ const sabongData = reactive({
     winner: null,
     previousGameID: null
 });
-
+const handleEditReglada = () => {
+    if (editReglada.value && editReglada.value.length > 0 && editReglada.value[0]) {
+        toast.add({ severity: 'info', summary: 'Success', detail: 'You can now able to edit the reglahan', life: 3000 });
+        console.log(editReglada.value[0]);
+    }
+};
+watch(editReglada, (newValue) => {
+    isChecked.value = newValue;
+    console.log(isChecked.value);
+});
 const handleIncomingMessage = async (event) => {
     const data = JSON.parse(event);
     if (data.type === 'sabong') {
@@ -109,10 +119,10 @@ onMounted(async () => {
                 regladaDataStraight.value = resReglaDataStraight;
             }
         } else {
-            toast.add({ severity: 'error', summary: 'Error', detail: resGame.description });
+            toast.add({ severity: 'error', summary: 'Error', detail: resGame.description, life: 3000 });
         }
     } catch (e) {
-        toast.add({ severity: 'error', summary: 'Error', detail: e });
+        toast.add({ severity: 'error', summary: 'Error', detail: e, life: 3000 });
         setTimeout(() => {
             router.push('/admins');
         }, 2000);
@@ -260,6 +270,7 @@ for (let i = 0; i < numRows; i++) {
 // Function to handle cell click event
 const handleCellClick = async (win, id) => {
     console.log(isRedeclare.value);
+
     let className = '';
     switch (win) {
         case 'Meron':
@@ -277,28 +288,45 @@ const handleCellClick = async (win, id) => {
         default:
             break;
     }
-    if (regladaBullet.value) {
-        if (isRedeclare.value) {
-            const res = regladaData.value.filter((item) => item.cellID !== id);
-            console.log(res);
+
+    const handleAddOrRemoveReglada = async () => {
+        console.log('PASOK');
+        const res = regladaData.value.filter((item) => item.cellID === id);
+        console.log(res);
+
+        if (res.length > 0) {
+            // Remove
+            console.log('REMOVE ITEM');
+            const updatedRegladaData = regladaData.value.filter((item) => item.cellID !== id);
+            console.log(updatedRegladaData);
 
             const resDel = await axios.postDeleteReglada({ username: store[0].username, token: store[0].token, arenaID: sabongData.arenaID, cellID: id, type: 'reglada' });
             console.log(resDel);
 
-            regladaData.value = res;
-            isRedeclare.value = false;
-            const passSocket = JSON.stringify({ type: 'sabong', scoreboard: id, class: className, method: 'remove' });
-            socket.emit('chat-message', passSocket);
-            return;
+            regladaData.value = updatedRegladaData;
+        } else {
+            // Add
+            console.log(res);
+            const pData = { username: store[0].username, token: store[0].token, arenaID: sabongData.arenaID, type: 'reglada', cellID: id, class: className };
+            const dataRes = await axios.postInserReglada(pData);
+            console.log(dataRes);
+
+            const passData = { arenaID: sabongData.arenaID, cellID: id, class: className };
+            regladaData.value.push(passData);
         }
-        const pData = { username: store[0].username, token: store[0].token, arenaID: sabongData.arenaID, type: 'reglada', cellID: id, class: className };
-        const dataRes = await axios.postInserReglada(pData);
-        console.log(dataRes);
-        const passData = { arenaID: sabongData.arenaID, cellID: id, class: className };
-        regladaData.value.push(passData);
-        const passSocket = JSON.stringify({ regladaType: 'reglada', type: 'sabong', scoreboard: id, class: className });
+
+        const passSocket = JSON.stringify({ regladaType: 'reglada', type: 'sabong', scoreboard: id, class: className, method: res.length > 0 ? 'remove' : 'addStraight' });
         socket.emit('chat-message', passSocket);
+
         regladaBullet.value = false;
+    };
+
+    if (isChecked.value.length > 0 || (regladaBullet.value && isRedeclare.value)) {
+        await handleAddOrRemoveReglada();
+    }
+
+    if (regladaBullet.value && !isRedeclare.value) {
+        await handleAddOrRemoveReglada();
     }
 };
 
@@ -323,8 +351,10 @@ for (let i = 0; i < numRowsStraight; i++) {
 }
 
 // Function to handle cell click event
+
 const handleCellClickStraight = async (win, id) => {
     console.log(isRedeclareStraight.value);
+
     let className = '';
     switch (win) {
         case 'Meron':
@@ -342,31 +372,64 @@ const handleCellClickStraight = async (win, id) => {
         default:
             break;
     }
-    if (regladaStraightBullet.value) {
-        if (isRedeclareStraight.value) {
-            const res = regladaDataStraight.value.filter((item) => item.cellID !== id);
-            console.log(res);
+
+    const handleAddOrRemoveReglada = async () => {
+        console.log('PASOK');
+        const res = regladaDataStraight.value.filter((item) => item.cellID === id);
+        console.log(res);
+
+        if (res.length > 0) {
+            // Remove
+            console.log('REMOVE ITEM');
+            const updatedRegladaData = regladaDataStraight.value.filter((item) => item.cellID !== id);
+            console.log(updatedRegladaData);
 
             const resDel = await axios.postDeleteReglada({ username: store[0].username, token: store[0].token, arenaID: sabongData.arenaID, cellID: id, type: 'regladaStraight' });
             console.log(resDel);
 
-            regladaDataStraight.value = res;
+            regladaDataStraight.value = updatedRegladaData;
             isRedeclareStraight.value = false;
-            regladaStraightBullet.value = true;
-            const passSocket = JSON.stringify({ type: 'sabong', scoreboard: id, class: className, method: 'removeStraight' });
-            socket.emit('chat-message', passSocket);
+        } else {
+            // Add
+            console.log(res);
+            const pData = { username: store[0].username, token: store[0].token, arenaID: sabongData.arenaID, type: 'regladaStraight', cellID: id, class: className };
+            const dataRes = await axios.postInserReglada(pData);
+            console.log(dataRes);
+
+            const passData = { arenaID: sabongData.arenaID, cellID: id, class: className };
+            regladaDataStraight.value.push(passData);
+        }
+
+        const passSocket = JSON.stringify({ regladaType: 'regladaStraight', type: 'sabong', scoreboard: id, class: className, method: res.length > 0 ? 'removeStraight' : 'addStraight' });
+        socket.emit('chat-message', passSocket);
+
+        regladaStraightBullet.value = false;
+    };
+
+    if (isChecked.value.length > 0) {
+        await handleAddOrRemoveReglada();
+        return;
+    }
+
+    if (regladaStraightBullet.value || isChecked.value.length > 0) {
+        if (isRedeclareStraight.value || isChecked.value.length > 0) {
+            await handleAddOrRemoveReglada();
             return;
         }
         const pData = { username: store[0].username, token: store[0].token, arenaID: sabongData.arenaID, type: 'regladaStraight', cellID: id, class: className };
         const dataRes = await axios.postInserReglada(pData);
         console.log(dataRes);
+
         const passData = { arenaID: sabongData.arenaID, cellID: id, class: className };
         regladaDataStraight.value.push(passData);
+
         const passSocket = JSON.stringify({ regladaType: 'regladaStraight', type: 'sabong', scoreboard: id, class: className });
         socket.emit('chat-message', passSocket);
+
         regladaStraightBullet.value = false;
     }
 };
+
 const getClassNameStraight = (cellID) => {
     const cell = regladaDataStraight.value.find((item) => item.cellID === cellID);
     return cell ? cell.class : '';
@@ -494,6 +557,10 @@ const getClassNameStraight = (cellID) => {
         </div>
         <div class="col-12 lg:col-6 xl:col-8">
             <div class="card" style="padding: 1rem">
+                <div class="flex align-items-center mb-2">
+                    <Checkbox v-model="editReglada" inputId="ingredient1" value="Edit" @change="handleEditReglada" />
+                    <label for="ingredient1" class="ml-2"> Edit </label>
+                </div>
                 <div class="reglada" style="height: 213px; overflow: auto">
                     <table style="min-width: max-content">
                         <tbody>
