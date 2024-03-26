@@ -42,6 +42,10 @@ const optionsTypeRequest = ref([]);
 const store = JSON.parse(localStorage.getItem('auth.admin'));
 const storeMonitor = ref();
 const seriesDonut = ref();
+const showHistoryListDialog = ref(false);
+
+const showHistoryCasinoList = ref();
+
 const confirm = useConfirm();
 const toast = useToast();
 const dataPass = { username: store[0].username, token: store[0].token };
@@ -103,12 +107,52 @@ const selectedActionValue = (event) => {
     });
 };
 
+const declinedWithdraw = (id, type) => {
+    console.log(id);
+    confirm.require({
+        target: event.currentTarget,
+        message: 'Do you want to delete this record?',
+        icon: 'pi pi-info-circle',
+        rejectClass: 'p-button-secondary p-button-outlined p-button-sm',
+        acceptClass: 'p-button-danger p-button-sm',
+        rejectLabel: 'Cancel',
+        acceptLabel: 'Delete',
+        accept: async () => {
+            const passData = { ...dataPass, id: id };
+            try {
+                const res = type === 'user' ? await axios.declineUserWithdrawal(passData) : await axios.declineAgentWithdrawal(passData);
+                console.log(res);
+                if (res.error === 1) {
+                    toast.add({ severity: 'error', summary: 'Transaction Failed', detail: res.description, life: 5000 });
+                } else if (res.resStatus === 0) {
+                    toast.add({ severity: 'success', summary: 'Confirmed', detail: 'Request withdrawal has been declined.', life: 3000 });
+                }
+            } catch (e) {
+                toast.add({ severity: 'error', summary: 'Transaction Failed', detail: e, life: 5000 });
+            }
+        }
+    });
+};
+
 const getPaymentGateway = async () => {
     const res = await axios.getPaymentGateway(dataPass);
     if (res.resStatus === 0) {
         const totalInitialBalance = res.data.reduce((accumulator, currentValue) => accumulator + currentValue.runningBalance, 0);
         totalAvailablePaymentsProvider.value = totalInitialBalance;
         availablePaymentsProvider.value = res.data;
+    }
+};
+
+const showHistoryCasino = async (data) => {
+    showHistoryCasinoList.value = null;
+    showHistoryListDialog.value = true;
+    console.log(dataPass);
+    const res = await axios.fetchHistoryCasino({ ...dataPass, playUsername: data });
+    console.log(res);
+    if (res.resStatus === 0) {
+        showHistoryCasinoList.value = res.history;
+    } else {
+        toast.add({ severity: 'error', summary: 'No Bet History', detail: res.resMsg, life: 10000 });
     }
 };
 
@@ -125,6 +169,7 @@ onMounted(() => {
 <template>
     <div class="grid">
         <Toast />
+        <ConfirmPopup></ConfirmPopup>
         <ConfirmDialog group="headless" class="w-25rem">
             <template #container="{ message, acceptCallback, rejectCallback }">
                 <div class="flex flex-column align-items-center p-5 surface-overlay border-round">
@@ -309,7 +354,18 @@ onMounted(() => {
                         >
                         <Column field="quantity" header="Action">
                             <template #body="slotProps">
-                                <Dropdown :options="optionsTypeRequest" @click="selectAction(slotProps.data.id, slotProps.data.amount, 'user')" @change="selectedActionValue" optionLabel="name" placeholder="Select Payment" class="w-full md:w-14rem" />
+                                <div style="display: flex; gap: 10px">
+                                    <Dropdown
+                                        :options="optionsTypeRequest"
+                                        @click="selectAction(slotProps.data.id, slotProps.data.amount, 'user')"
+                                        @change="selectedActionValue"
+                                        optionLabel="name"
+                                        placeholder="Select Payment"
+                                        class="w-full md:w-14rem"
+                                    />
+                                    <Button label="Decline" @click="declinedWithdraw(slotProps.data.id, 'user')" />
+                                    <Button label="Bet History" @click="showHistoryCasino(slotProps.data.username)" outlined />
+                                </div>
                             </template>
                         </Column>
                     </DataTable>
@@ -379,6 +435,46 @@ onMounted(() => {
                 </div>
             </div>
         </div>
+        <Dialog v-model:visible="showHistoryListDialog" modal header="Bet History" :style="{ width: '100rem' }">
+            <DataTable :value="showHistoryCasinoList" tableStyle="min-width: 50rem" paginator :rows="10" :rowsPerPageOptions="[5, 10, 20, 50]">
+                <Column field="category" header="Username">
+                    <template #body="slotProps">
+                        {{ slotProps.data.username }}
+                    </template></Column
+                >
+
+                <Column field="before" header="Before">
+                    <template #body="slotProps">
+                        {{ slotProps.data.before }}
+                    </template></Column
+                >
+                <Column field="after" header="After">
+                    <template #body="slotProps">
+                        {{ slotProps.data.after }}
+                    </template></Column
+                >
+                <Column field="betAmount" header="Bet Amount">
+                    <template #body="slotProps">
+                        {{ slotProps.data.betAmount }}
+                    </template></Column
+                >
+                <Column field="winAmount" header="Win Amount">
+                    <template #body="slotProps">
+                        {{ slotProps.data.winAmount }}
+                    </template></Column
+                >
+                <Column field="provider" header="Provider"
+                    ><template #body="slotProps">
+                        {{ formatCurrency(slotProps.data.provider) }}
+                    </template></Column
+                >
+                <Column field="date" header="Date">
+                    <template #body="slotProps">
+                        {{ slotProps.data.date }}
+                    </template></Column
+                >
+            </DataTable>
+        </Dialog>
     </div>
 </template>
 

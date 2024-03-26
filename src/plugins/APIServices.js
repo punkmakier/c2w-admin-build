@@ -183,10 +183,20 @@ export const AdminAPIRequest = {
     approveAgentWithdrawal: async (data) => {
         return await post('/api/approveAgentWithdrawal', data);
     },
+    declineUserWithdrawal: async (data) => {
+        return await post('/api/declineUserWithdrawal', data);
+    },
+    declineAgentWithdrawal: async (data) => {
+        return await post('/api/declineAgentWithdrawal', data);
+    },
+
     requestCountWithdraw: async (data) => {
         return await post('/api/admin/requestCountWithdraw', data);
     },
     fetchCountChat: async (data) => {
         return await post('/api/admin/fetchCountChat', data);
+    },
+    fetchHistoryCasino: async (data) => {
+        return await post('/api/game/historyCasino', data);
     }
 };
