@@ -6,6 +6,7 @@ const { onMenuToggle } = useLayout();
 
 const outsideClickListener = ref(null);
 const topbarMenuActive = ref(false);
+const store = JSON.parse(localStorage.getItem('auth.admin'));
 
 onMounted(() => {
     bindOutsideClickListener();
@@ -59,7 +60,9 @@ const isOutsideClicked = (event) => {
         <button class="p-link layout-topbar-menu-button layout-topbar-button" @click="onTopBarMenuButton()">
             <i class="pi pi-ellipsis-v"></i>
         </button>
-        <div class="layout-topbar-menu" :class="topbarMenuClasses"><span style="font-weight: 500">Admin:</span><span style="color: var(--blue-500); margin-left: 4px; font-weight: 500"> Mark Allan Carba</span></div>
+        <div class="layout-topbar-menu" :class="topbarMenuClasses">
+            <span style="font-weight: 500">Admin:</span><span style="color: var(--blue-500); margin-left: 4px; font-weight: 500">{{ store[0].username }}</span>
+        </div>
     </div>
 </template>
 

@@ -1,17 +1,71 @@
 <script setup>
-import { ref, onMounted, watch, onUnmounted } from 'vue';
+import { ref, onMounted, watch, onUnmounted, reactive } from 'vue';
 import { AdminAPIRequest as axios } from '@/plugins/APIServices';
 import { useToast } from 'primevue/usetoast';
+import { useConfirm } from 'primevue/useconfirm';
+const confirm = useConfirm();
 const toast = useToast();
 const nextDrawTimeVal = ref();
 const resCountdownVal = ref(null);
 const startCountdown = ref(null);
+const isLoading = ref(false);
 const store = JSON.parse(localStorage.getItem('auth.admin'));
 const storeData = { username: store[0].username, token: store[0].token, gameType: 'P3' };
 const summary = ref([
     { id: 1, winComb: '1*3', gameSched: '2PM', betCount: 234, winnerCount: 2, totalBets: 32424, totalWins: 53424, profit: 12343, date: '2023-03-16 12:32:12' },
     { id: 2, winComb: '5*1', gameSched: '6PM', betCount: 24, winnerCount: 5, totalBets: 1234, totalWins: 5344, profit: 5445, date: '2023-03-16 12:32:12' }
 ]);
+const declareNum = reactive({
+    firstNum: null,
+    secondNum: null,
+    thirdNum: null,
+    fourthNum: null,
+    fifthNum: null,
+    sixtNum: null,
+    gameID: null
+});
+
+const declare = () => {
+    if (declareNum.firstNum == null || declareNum.secondNum == null || declareNum.thirdNum == null || declareNum.fourthNum == null || declareNum.fifthNum == null || declareNum.sixtNum == null) {
+        toast.add({ severity: 'error', summary: 'Failed', detail: 'Please fill the required fields.', life: 3000 });
+        return;
+    }
+
+    confirm.require({
+        message: 'Are you sure you want to proceed?',
+        header: 'Confirmation',
+        icon: 'pi pi-exclamation-triangle',
+        rejectClass: 'p-button-secondary p-button-outlined',
+        rejectLabel: 'Cancel',
+        acceptLabel: 'Save',
+        accept: async () => {
+            isLoading.value = true;
+            storeData.firstNumber = declareNum.firstNum;
+            storeData.secNumber = declareNum.secondNum;
+            storeData.thirdNumber = declareNum.thirdNum;
+            storeData.fourthNumber = declareNum.fourthNum;
+            storeData.fifthNumber = declareNum.fifthNum;
+            storeData.sixtNumber = declareNum.sixtNum;
+            storeData.gameID = declareNum.gameID;
+            const res = await axios.postLotteryDeclare(storeData);
+            console.log(storeData);
+            console.log(res);
+            if (res.error === 0) {
+                declareNum.firstNum = null;
+                declareNum.secondNum = null;
+                declareNum.thirdNum = null;
+                declareNum.fourthNum = null;
+                declareNum.fifthNum = null;
+                declareNum.sixtNum = null;
+                toast.add({ severity: 'success', summary: 'Success', detail: 'Pick 3 has been declared successfully', life: 3000 });
+            } else {
+                toast.add({ severity: 'error', summary: 'Failed', detail: res.description, life: 3000 });
+            }
+            isLoading.value = false;
+        }
+    });
+};
+
 const formatCurrency = (value) => {
     return value.toLocaleString('en-US', { style: 'currency', currency: 'PHP' });
 };
@@ -20,6 +74,7 @@ const fetchGame = async () => {
     const res = await axios.postLotteryFetchGame(storeData);
     console.log(res);
     if (res.error === 0) {
+        declareNum.gameID = res.gameDetails.id;
         resCountdownVal.value = res.gameDetails.ballClose;
     } else {
         toast.add({ severity: 'error', summary: 'Failed', detail: res.description, life: 3000 });
@@ -61,6 +116,8 @@ onMounted(() => {
 </script>
 <template>
     <div style="width: 70%; margin: 0 auto">
+        <Toast />
+        <ConfirmDialog></ConfirmDialog>
         <div class="countdown">
             <h3 style="position: absolute; left: 3%; top: 10%; color: #fff">Lucky Pick 3</h3>
             <span>Countdown</span>
@@ -70,39 +127,39 @@ onMounted(() => {
             <div class="col-12 lg:col-6 xl:col-6">
                 <div class="card games">
                     <div class="" style="margin-top: 10px">
-                        <label class="font-semibold w-6rem">Game ID</label>
-                        <InputNumber style="margin-top: 5px" class="w-full" inputId="withoutgrouping" :useGrouping="false" />
+                        <label class="font-semibold w-6rem">Game ID </label>
+                        <InputNumber v-model="declareNum.gameID" style="margin-top: 5px" class="w-full" inputId="withoutgrouping" :useGrouping="false" disabled />
                     </div>
                     <div style="display: flex; justify-content: space-between; gap: 10px">
                         <div class="" style="margin-top: 10px">
                             <label class="font-semibold">First number</label>
-                            <InputNumber style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
+                            <InputNumber v-model="declareNum.firstNum" style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
                         </div>
                         <div class="" style="margin-top: 10px">
                             <label class="font-semibold">Second number</label>
-                            <InputNumber style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
+                            <InputNumber v-model="declareNum.secondNum" style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
                         </div>
                         <div class="" style="margin-top: 10px">
                             <label class="font-semibold">Third number</label>
-                            <InputNumber style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
+                            <InputNumber v-model="declareNum.thirdNum" style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
                         </div>
                     </div>
                     <div style="display: flex; justify-content: space-between; gap: 10px">
                         <div class="" style="margin-top: 10px">
                             <label class="font-semibold">Fourth number</label>
-                            <InputNumber style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
+                            <InputNumber v-model="declareNum.fourthNum" style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
                         </div>
                         <div class="" style="margin-top: 10px">
                             <label class="font-semibold">Fifth number</label>
-                            <InputNumber style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
+                            <InputNumber v-model="declareNum.fifthNum" style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
                         </div>
                         <div class="" style="margin-top: 10px">
                             <label class="font-semibold">Sixth number</label>
-                            <InputNumber style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
+                            <InputNumber v-model="declareNum.sixtNum" style="margin-top: 5px" inputId="withoutgrouping" :useGrouping="false" />
                         </div>
                     </div>
                     <div class="mt-3">
-                        <Button severity="success" label="DECLARE" class="w-full" />
+                        <Button severity="success" label="DECLARE" class="w-full" :loading="isLoading" @click="declare" />
                         <Button severity="warning" label="RE-DECLARE" class="w-full mt-2" />
                     </div>
                 </div>

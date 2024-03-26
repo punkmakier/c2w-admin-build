@@ -44,7 +44,7 @@ const storeMonitor = ref();
 const seriesDonut = ref();
 const confirm = useConfirm();
 const toast = useToast();
-const dataPass = { username: store.username, token: store.token };
+const dataPass = { username: store[0].username, token: store[0].token };
 const balanceProvider = reactive({
     toppay: 0,
     hpay: 0,
@@ -67,21 +67,14 @@ const userWithdrawalRequest = ref();
 const agentWithdrawalRequest = ref();
 const withdrawalRequest = async () => {
     const res = await axios.postUserReqWithdrawal(dataPass);
-    console.log(res);
     userWithdrawalRequest.value = res.user_withdraw;
     agentWithdrawalRequest.value = res.agent_withdraw;
 };
 
-const methodAndType = (method, bank = '') => {
-    if (method == 'Bank') {
-        return 'Bank - ' + bank;
-    } else {
-        return method;
-    }
-};
 const selectAction = (id, method) => {
+    console.log(id + ' ' + method);
     const available = {};
-    if (method == 'Bank') {
+    if (method != 'GCASH' && method != 'Paymaya') {
         // Toppay
         available.toppay = balanceProvider.toppay;
         // H2Pay
@@ -116,12 +109,11 @@ const selectAction = (id, method) => {
         optionsTypeRequest.value.push({
             name: key.toUpperCase().toString(),
             id: id,
-            user_id: updtRes.user_id,
             amount: updtRes.amount,
             method: updtRes.method,
-            order_id: updtRes.order_id,
-            account_name: updtRes.account_name,
-            account_number: updtRes.account_number
+            order_id: updtRes.orderID,
+            account_name: updtRes.accountName,
+            account_number: updtRes.accountNumber
         });
     });
 };
@@ -133,13 +125,14 @@ const selectedActionValue = (event) => {
         message: 'Please confirm to process the payment',
         accept: async () => {
             const passData = { ...dataPass, ...event.value };
-            const res = await axios.postUpdateUserReqWithdrawal(passData);
-            if (res.resStatus === 1) {
-                toast.add({ severity: 'error', summary: 'Transaction Failed', detail: res.resMsg, life: 5000 });
-            } else if (res.resStatus === 0) {
-                toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction request has been completed.', life: 5000 });
-            }
             console.log(passData);
+            // const res = await axios.postUpdateUserReqWithdrawal(passData);
+            // if (res.resStatus === 1) {
+            //     toast.add({ severity: 'error', summary: 'Transaction Failed', detail: res.resMsg, life: 5000 });
+            // } else if (res.resStatus === 0) {
+            //     toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction request has been completed.', life: 5000 });
+            // }
+            // console.log(passData);
         }
     });
 };
@@ -308,11 +301,11 @@ onMounted(() => {
                         <i class="pi pi-money-bill text-blue-500 text-xl"></i>
                     </div>
                 </div>
-                <div class="">
+                <div class="mt-3">
                     <DataTable :value="userWithdrawalRequest" tableStyle="min-width: 50rem" paginator :rows="5" :rowsPerPageOptions="[5, 10, 20, 50]">
-                        <Column field="name" header="ORDER ID">
+                        <Column field="orderID" header="ORDER ID">
                             <template #body="slotProps">
-                                {{ slotProps.data.order_id }}
+                                {{ slotProps.data.orderID }}
                             </template>
                         </Column>
                         <Column field="category" header="Username">
@@ -322,17 +315,17 @@ onMounted(() => {
                         >
                         <Column field="quantity" header="Method">
                             <template #body="slotProps">
-                                {{ methodAndType(slotProps.data.method, slotProps.data.bank) }}
+                                {{ slotProps.data.method }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Account Number">
+                        <Column field="accountNumber" header="Account Number">
                             <template #body="slotProps">
-                                {{ slotProps.data.account_number }}
+                                {{ slotProps.data.accountNumber }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Account Name">
+                        <Column field="accountName" header="Account Name">
                             <template #body="slotProps">
-                                {{ slotProps.data.account_name }}
+                                {{ slotProps.data.accountName }}
                             </template></Column
                         >
                         <Column field="quantity" header="Amount"
@@ -366,9 +359,9 @@ onMounted(() => {
                 </div>
                 <div class="">
                     <DataTable :value="agentWithdrawalRequest" tableStyle="min-width: 50rem" paginator :rows="5" :rowsPerPageOptions="[5, 10, 20, 50]">
-                        <Column field="name" header="ORDER ID">
+                        <Column field="orderID" header="ORDER ID">
                             <template #body="slotProps">
-                                {{ slotProps.data.order_id }}
+                                {{ slotProps.data.orderID }}
                             </template>
                         </Column>
                         <Column field="category" header="Username">
@@ -376,19 +369,19 @@ onMounted(() => {
                                 {{ slotProps.data.username }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Method">
+                        <Column field="method" header="Method">
                             <template #body="slotProps">
                                 {{ slotProps.data.method }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Account Number">
+                        <Column field="accountNumber" header="Account Number">
                             <template #body="slotProps">
-                                {{ slotProps.data.account_number }}
+                                {{ slotProps.data.accountNumber }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Account Name">
+                        <Column field="accountName" header="Account Name">
                             <template #body="slotProps">
-                                {{ slotProps.data.account_name }}
+                                {{ slotProps.data.accountName }}
                             </template></Column
                         >
                         <Column field="quantity" header="Amount"

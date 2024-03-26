@@ -24,7 +24,7 @@ const declareNum = reactive({
 });
 
 const declare = () => {
-    if (declareNum.firstNum == null || declareNum.secondNum == null || thirdNum.secondNum == null) {
+    if (declareNum.firstNum == null || declareNum.secondNum == null || declareNum.thirdNum == null) {
         toast.add({ severity: 'error', summary: 'Failed', detail: 'Please fill the required fields.', life: 3000 });
         return;
     }
@@ -46,7 +46,10 @@ const declare = () => {
             console.log(storeData);
             console.log(res);
             if (res.error === 0) {
-                toast.add({ severity: 'success', summary: 'Success', detail: '2D Lotto has been declared successfully', life: 3000 });
+                declareNum.firstNum = null;
+                declareNum.secondNum = null;
+                declareNum.thirdNum = null;
+                toast.add({ severity: 'success', summary: 'Success', detail: '3D Lotto has been declared successfully', life: 3000 });
             } else {
                 toast.add({ severity: 'error', summary: 'Failed', detail: res.description, life: 3000 });
             }
