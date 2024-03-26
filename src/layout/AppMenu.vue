@@ -1,11 +1,14 @@
 <script setup>
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import AppMenuItem from './AppMenuItem.vue';
 import { AdminAPIRequest as axios } from '@/plugins/APIServices';
 import { useToast } from 'primevue/usetoast';
 const router = useRouter();
 const toast = useToast();
+const hasArena = ref(false);
+const countPendingWithdraw = ref(0);
+const countChatUnread = ref();
 import { useAuthStore } from '@/stores/auth.js';
 const store = useAuthStore();
 const passData = { username: store.user[0].username, token: store.user[0].token };
@@ -13,12 +16,40 @@ const logout = () => {
     localStorage.removeItem('auth.admin');
     router.push('/');
 };
+
+const fetchCount = async () => {
+    const res = await axios.requestCountWithdraw(passData);
+    console.log(res);
+    if (res.resStatus === 0) {
+        countPendingWithdraw.value = res.count;
+    }
+};
+const fetchCountChat = async () => {
+    const res = await axios.fetchCountChat(passData);
+    console.log(res);
+    if (res.resStatus === 0) {
+        countChatUnread.value = res.count;
+    }
+};
+
+onMounted(() => {
+    fetchCount();
+    fetchCountChat();
+    setInterval(() => {
+        fetchCount();
+        fetchCountChat();
+    }, 30000);
+    if (localStorage.getItem('hasArena')) {
+        hasArena.value = true;
+    }
+});
+
 const model = ref([
     {
         label: 'Home',
         items: [
             { label: 'Super Admin Dashboard', icon: 'pi pi-fw pi-home', to: '/dashboard' },
-            { label: 'Admin Dashboard', icon: 'pi pi-fw pi-home', to: '/admins', tag: '32' }
+            { label: 'Admin Dashboard', icon: 'pi pi-fw pi-home', to: '/admins', tag: countPendingWithdraw }
         ]
     },
     {
@@ -30,8 +61,8 @@ const model = ref([
             { label: 'User Withdrawals History', icon: 'pi pi-fw pi-credit-card', to: '/userwithdrawals' },
             { label: 'Agent Withdrawals History', icon: 'pi pi-fw pi-money-bill', to: '/agentwithdrawals' },
             { label: 'Agents', icon: 'pi pi-users', to: '/agents', class: 'rotated-icon' },
-            { label: 'Games', icon: 'pi pi-box', to: '/games', class: 'rotated-icon' },
-            { label: 'Chat Support', icon: 'pi pi-phone', to: '/chat', class: 'rotated-icon' }
+            // { label: 'Games', icon: 'pi pi-box', to: '/games', class: 'rotated-icon' },
+            { label: 'Chat Support', icon: 'pi pi-phone', to: '/chat', class: 'rotated-icon', tag: countChatUnread }
         ]
     },
     {
@@ -56,6 +87,7 @@ const createArenaState = reactive({
     sabongType: { name: 'Short Knife', code: 'Short Knife' },
     fightNumber: null
 });
+
 const submitCreateArena = async () => {
     btnLoading.value = true;
     const dataCreate = { arenaName: createArenaState.sabongType.name, fightNumber: createArenaState.fightNumber, ...passData };
@@ -64,6 +96,7 @@ const submitCreateArena = async () => {
     console.log(res);
     btnLoading.value = false;
     if (res.error === 0) {
+        hasArena.value = true;
         showCreateArena.value = false;
         createArenaState.sabongType = { name: 'Short Knife', code: 'Short Knife' };
         createArenaState.fightNumber = null;
@@ -96,9 +129,9 @@ const toPick3 = () => {
             <app-menu-item v-if="!item.separator" :item="item" :index="i"></app-menu-item>
             <li v-if="item.separator" class="menu-separator"></li>
         </template>
-        <div class="newMenu" @click="createArena"><i class="pi pi-plus-circle" style="font-size: 1rem"></i> <span>Create Arena</span></div>
+        <div class="newMenu" @click="createArena" v-if="!hasArena"><i class="pi pi-plus-circle" style="font-size: 1rem"></i> <span>Create Arena</span></div>
 
-        <div class="newMenu" @click="toArenaManagement"><i class="pi pi-flag-fill" style="font-size: 1rem"></i> <span style="color: #4b5563">Arena Management</span></div>
+        <div class="newMenu" @click="toArenaManagement" v-if="hasArena"><i class="pi pi-flag-fill" style="font-size: 1rem"></i> <span style="color: #4b5563">Arena Management</span></div>
         <div class="newMenu"><i class="pi pi-chart-line" style="font-size: 1rem"></i> <span>Profit & Lose</span></div>
         <div style="margin-top: 15px"><span style="font-weight: 600; font-size: 0.9rem; color: #000">LOTTERY</span></div>
         <div class="">

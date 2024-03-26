@@ -81,7 +81,7 @@ const checkActiveRoute = (item) => {
             <i :class="item.icon" class="layout-menuitem-icon"></i>
             <span class="layout-menuitem-text">{{ item.label }}</span>
             <i class="pi pi-fw pi-angle-down layout-submenu-toggler" v-if="item.items"></i>
-            <Tag severity="danger" value="132" v-if="item.tag" style="margin-left: 30px"></Tag>
+            <Tag severity="danger" :value="item.tag" v-if="item.tag" style="margin-left: 30px"></Tag>
         </router-link>
         <Transition v-if="item.items && item.visible !== false" name="layout-submenu">
             <ul v-show="root ? true : isActiveMenu" class="layout-submenu">

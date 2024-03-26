@@ -44,7 +44,7 @@ const changeErrorMessage = (value, handleValue) => {
     }
 };
 
-const passData1 = { username: store.username, token: store.token };
+const passData1 = { username: store[0].username, token: store[0].token };
 onMounted(async () => {
     const res = await axios.showAllAgents(passData1);
     if (res.resStatus === 0) {
@@ -118,6 +118,7 @@ const formatStatus = (value) => {
 };
 
 const editAction = (value) => {
+    console.log(value);
     modalText.value = 'Edit';
     const res = dataHandler.value.filter((item) => item.id === value);
     console.log(res);
@@ -201,11 +202,13 @@ const openModal = () => {
                 </template>
             </Column>
             <Column style="width: 15%" :sortable="true" field="username" header="Username"> </Column>
-            <Column style="width: 15%" :sortable="true" field="overallComGGR" header="GGR %">
-                <template #body="slotProps"> {{ slotProps.data.overallComGGR }}% </template>
+            <Column style="width: 15%" :sortable="true" field="email" header="Email">
+                <!-- <template #body="slotProps"> {{ slotProps.data.overallComGGR }}% </template> -->
+                <template #body="slotProps"> {{ slotProps.data.email }}% </template>
             </Column>
-            <Column style="width: 10%" :sortable="true" field="vtoComm" header="VTO %">
-                <template #body="slotProps"> {{ slotProps.data.vtoComm }}% </template>
+            <Column style="width: 10%" :sortable="true" field="is_online" header="Online Status">
+                <!-- <template #body="slotProps"> {{ slotProps.data.vtoComm }}% </template> -->
+                <template #body="slotProps"> {{ slotProps.data.is_online }} </template>
             </Column>
 
             <Column style="width: 10%" :sortable="true" field="status" header="Status">

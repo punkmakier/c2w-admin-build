@@ -14,7 +14,7 @@ const paymentType = ref([
     { name: 'Deposit', code: 'Deposit' }
 ]);
 const store = JSON.parse(localStorage.getItem('auth.admin'));
-const passData = { username: store.username, token: store.token };
+const passData = { username: store[0].username, token: store[0].token };
 const addState = reactive({
     id: null,
     isEnabled: null,
@@ -96,6 +96,7 @@ onMounted(async () => {
     const res = await axios.postGetPaymentMethods(passData);
     providerNameList.value = res.data;
     const list = await axios.showAllPaymentMethod(passData);
+    console.log(list);
     paymentList.value = list;
 });
 

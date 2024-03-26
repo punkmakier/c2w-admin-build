@@ -52,6 +52,10 @@ const balanceProvider = reactive({
     copo: 0,
     total: 0
 });
+
+const availablePaymentsProvider = ref();
+const totalAvailablePaymentsProvider = ref();
+
 const adminMonitoring = async () => {
     const res = await axios.postAdminMonitoring(dataPass);
     storeMonitor.value = res;
@@ -71,77 +75,49 @@ const withdrawalRequest = async () => {
     agentWithdrawalRequest.value = res.agent_withdraw;
 };
 
-const selectAction = (id, method) => {
-    console.log(id + ' ' + method);
-    const available = {};
-    if (method != 'GCASH' && method != 'Paymaya') {
-        // Toppay
-        available.toppay = balanceProvider.toppay;
-        // H2Pay
-    }
-    if (method == 'GCASH') {
-        // A+Pay
-        // FPAy
-        // Pagarstar
-        available.pagarstar = balanceProvider.pagarstar;
-    }
-    if (method == 'Paymaya') {
-        // Toppay
-        available.toppay = balanceProvider.toppay;
-    }
-
-    optionsTypeRequest.value = [];
-    const res = userWithdrawalRequest.value.filter((item) => item.id == id);
-    const updtRes = res[0];
-    console.log(updtRes);
-    const amount = res[0].amount;
-    const availableMethod = [];
-
-    for (const key in available) {
-        if (key !== 'total') {
-            const value = available[key];
-            if (value >= amount) {
-                availableMethod.push(key);
-            }
-        }
-    }
-    availableMethod.forEach((key) => {
-        optionsTypeRequest.value.push({
-            name: key.toUpperCase().toString(),
-            id: id,
-            amount: updtRes.amount,
-            method: updtRes.method,
-            order_id: updtRes.orderID,
-            account_name: updtRes.accountName,
-            account_number: updtRes.accountNumber
-        });
-    });
+const selectAction = (id, amnt, type) => {
+    console.log(id + ' ' + amnt);
+    const avail = availablePaymentsProvider.value.filter((item) => item.runningBalance >= amnt || (item.maxWithdrawal <= amnt && item.isWithdrawable == 1));
+    const updatedPayment = avail.map((item) => ({ ...item, id: id, type: type }));
+    optionsTypeRequest.value = updatedPayment;
 };
 const selectedActionValue = (event) => {
-    console.log(event.value);
+    console.log();
     confirm.require({
         group: 'headless',
         header: 'Are you sure?',
         message: 'Please confirm to process the payment',
         accept: async () => {
-            const passData = { ...dataPass, ...event.value };
-            console.log(passData);
-            // const res = await axios.postUpdateUserReqWithdrawal(passData);
-            // if (res.resStatus === 1) {
-            //     toast.add({ severity: 'error', summary: 'Transaction Failed', detail: res.resMsg, life: 5000 });
-            // } else if (res.resStatus === 0) {
-            //     toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction request has been completed.', life: 5000 });
-            // }
-            // console.log(passData);
+            const passData = { ...dataPass, providerID: event.value.providerID, id: event.value.id };
+            try {
+                const res = event.value.type === 'user' ? await axios.approveUserWithdrawal(passData) : await axios.approveAgentWithdrawal(passData);
+                if (res.error === 1) {
+                    toast.add({ severity: 'error', summary: 'Transaction Failed', detail: res.description, life: 5000 });
+                } else if (res.resStatus === 0) {
+                    toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction request has been completed.', life: 5000 });
+                }
+            } catch (e) {
+                toast.add({ severity: 'error', summary: 'Transaction Failed', detail: e, life: 5000 });
+            }
         }
     });
 };
+
+const getPaymentGateway = async () => {
+    const res = await axios.getPaymentGateway(dataPass);
+    if (res.resStatus === 0) {
+        const totalInitialBalance = res.data.reduce((accumulator, currentValue) => accumulator + currentValue.runningBalance, 0);
+        totalAvailablePaymentsProvider.value = totalInitialBalance;
+        availablePaymentsProvider.value = res.data;
+    }
+};
+
 onMounted(() => {
     adminMonitoring();
     withdrawalRequest();
+    getPaymentGateway();
     setInterval(() => {
         adminMonitoring();
-        console.log('fetched');
     }, 30000);
 });
 </script>
@@ -164,28 +140,33 @@ onMounted(() => {
                 </div>
             </template>
         </ConfirmDialog>
-        <div class="col-12 lg:col-6 xl:col-5">
-            <div class="card mb-2 bg-random" style="padding-bottom: 38px" v-if="balanceProvider.toppay">
-                <div style="display: flex; justify-content: space-between">
-                    <div class="card-custom" style="display: flex; flex-direction: column">
-                        <b style="font-size: 0.8rem">TOPPAY BALANCE</b><b style="text-align: center; margin-top: 10px; font-size: 1.4rem">{{ formatCurrency(balanceProvider.toppay) }}</b>
-                    </div>
-                    <div class="card-custom" style="display: flex; flex-direction: column" v-if="balanceProvider.hpay">
-                        <b style="font-size: 0.8rem">HPAY BALANCE</b><b style="text-align: center; margin-top: 10px; font-size: 1.4rem">{{ formatCurrency(balanceProvider.hpay) }}</b>
+        <div class="col-12 lg:col-6 xl:col-8">
+            <div class="card mb-2 bg-random" style="padding-bottom: 38px" v-if="availablePaymentsProvider">
+                <div style="display: flex; flex-wrap: wrap; gap: 10px">
+                    <div class="card-custom" style="display: flex; flex-direction: column" v-for="(data, index) in availablePaymentsProvider" :key="index">
+                        <b style="font-size: 0.8rem">{{ data.name }}</b
+                        ><b style="text-align: center; margin-top: 10px; font-size: 1.4rem">{{ formatCurrency(data.runningBalance) }}</b>
                     </div>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-top: 10px" v-if="balanceProvider.pagarstar">
-                    <div class="card-custom" style="display: flex; flex-direction: column">
-                        <b style="font-size: 0.8rem">PAGARSTAR BALANCE</b><b style="text-align: center; margin-top: 10px; font-size: 1.4rem">{{ formatCurrency(balanceProvider.pagarstar) }}</b>
-                    </div>
-                    <div class="card-custom" style="display: flex; flex-direction: column" v-if="balanceProvider.copo">
-                        <b style="font-size: 0.8rem">COPO BALANCE</b><b style="text-align: center; margin-top: 10px; font-size: 1.4rem">{{ formatCurrency(balanceProvider.copo) }}</b>
-                    </div>
-                </div>
+
                 <div class="mt-5 text-white" style="text-align: center">
                     <span style="font-size: 1.3rem; font-weight: 600">Total</span><br /><br />
-                    <span style="font-size: 2rem; font-weight: 600">{{ formatCurrency(balanceProvider.total) }}</span>
+                    <span style="font-size: 2rem; font-weight: 600">{{ formatCurrency(totalAvailablePaymentsProvider) }}</span>
                 </div>
+            </div>
+        </div>
+
+        <div class="col-12 lg:col-6 xl:col-4" v-if="seriesDonut">
+            <div class="card mb-0">
+                <div class="flex justify-content-between mb-3">
+                    <div>
+                        <span class="block text-500 font-medium mb-3"><b>Users & Agents (Success Deposit & Withdraw)</b></span>
+                    </div>
+                    <div class="flex align-items-center justify-content-center bg-blue-100 border-round" style="width: 2.5rem; height: 2.5rem">
+                        <i class="pi pi-money-bill text-blue-500 text-xl"></i>
+                    </div>
+                </div>
+                <apexchart type="donut" :options="chartOptionsDonut" :series="seriesDonut" height="360" />
             </div>
         </div>
         <div class="col-12 lg:col-6 xl:col-3" v-if="storeMonitor">
@@ -202,6 +183,8 @@ onMounted(() => {
                     <span style="font-size: 2rem; font-weight: 600">{{ storeMonitor.playerCount.toLocaleString() }}</span>
                 </div>
             </div>
+        </div>
+        <div class="col-12 lg:col-6 xl:col-3" v-if="storeMonitor">
             <div class="card mb-2 bg-yellow1" style="height: 159px">
                 <div class="flex justify-content-between">
                     <div>
@@ -216,21 +199,7 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <div class="col-12 lg:col-6 xl:col-4" v-if="seriesDonut">
-            <div class="card mb-0">
-                <div class="flex justify-content-between mb-3">
-                    <div>
-                        <span class="block text-500 font-medium mb-3"><b>Users & Agents (Success Deposit & Withdraw)</b></span>
-                    </div>
-                    <div class="flex align-items-center justify-content-center bg-blue-100 border-round" style="width: 2.5rem; height: 2.5rem">
-                        <i class="pi pi-money-bill text-blue-500 text-xl"></i>
-                    </div>
-                </div>
-                <apexchart type="donut" :options="chartOptionsDonut" :series="seriesDonut" height="360" />
-            </div>
-        </div>
-
-        <div class="col-12 lg:col-6 xl:col-3" v-if="storeMonitor">
+        <div class="col-12 lg:col-6 xl:col-2" v-if="storeMonitor">
             <div class="card mb-2 bg-blue" style="height: 159px">
                 <div class="flex justify-content-between">
                     <div>
@@ -245,7 +214,7 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <div class="col-12 lg:col-6 xl:col-3" v-if="storeMonitor">
+        <div class="col-12 lg:col-6 xl:col-2" v-if="storeMonitor">
             <div class="card mb-2 bg-green" style="height: 159px">
                 <div class="flex justify-content-between">
                     <div>
@@ -260,7 +229,7 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <div class="col-12 lg:col-6 xl:col-3" v-if="storeMonitor">
+        <div class="col-12 lg:col-6 xl:col-2" v-if="storeMonitor">
             <div class="card mb-2 bg-blue" style="height: 159px">
                 <div class="flex justify-content-between">
                     <div>
@@ -275,7 +244,7 @@ onMounted(() => {
                 </div>
             </div>
         </div>
-        <div class="col-12 lg:col-6 xl:col-3">
+        <!-- <div class="col-12 lg:col-6 xl:col-3">
             <div class="card mb-2 bg-red" style="height: 159px">
                 <div class="flex justify-content-between">
                     <div>
@@ -289,7 +258,7 @@ onMounted(() => {
                 </div>
                 <div class="text-center mt-2 text-white"><span style="font-size: 2rem; font-weight: 600">123 / 123</span></div>
             </div>
-        </div>
+        </div> -->
 
         <div class="col-12">
             <div class="card mb-2" style="minx-height: 159px; height: auto">
@@ -340,7 +309,7 @@ onMounted(() => {
                         >
                         <Column field="quantity" header="Action">
                             <template #body="slotProps">
-                                <Dropdown :options="optionsTypeRequest" @click="selectAction(slotProps.data.id, slotProps.data.method)" @change="selectedActionValue" optionLabel="name" placeholder="Select Payment" class="w-full md:w-14rem" />
+                                <Dropdown :options="optionsTypeRequest" @click="selectAction(slotProps.data.id, slotProps.data.amount, 'user')" @change="selectedActionValue" optionLabel="name" placeholder="Select Payment" class="w-full md:w-14rem" />
                             </template>
                         </Column>
                     </DataTable>
@@ -357,7 +326,7 @@ onMounted(() => {
                         <i class="pi pi-money-bill text-blue-500 text-xl"></i>
                     </div>
                 </div>
-                <div class="">
+                <div class="mt-3">
                     <DataTable :value="agentWithdrawalRequest" tableStyle="min-width: 50rem" paginator :rows="5" :rowsPerPageOptions="[5, 10, 20, 50]">
                         <Column field="orderID" header="ORDER ID">
                             <template #body="slotProps">
@@ -384,17 +353,28 @@ onMounted(() => {
                                 {{ slotProps.data.accountName }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Amount"
+                        <Column field="amount" header="Amount"
                             ><template #body="slotProps">
                                 {{ formatCurrency(slotProps.data.amount) }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Date">
+                        <Column field="date" header="Date">
                             <template #body="slotProps">
                                 {{ slotProps.data.date }}
                             </template></Column
                         >
-                        <Column field="quantity" header="Action"></Column>
+                        <Column field="quantity" header="Action">
+                            <template #body="slotProps">
+                                <Dropdown
+                                    :options="optionsTypeRequest"
+                                    @click="selectAction(slotProps.data.id, slotProps.data.amount, 'agent')"
+                                    @change="selectedActionValue"
+                                    optionLabel="name"
+                                    placeholder="Select Payment"
+                                    class="w-full md:w-14rem"
+                                />
+                            </template>
+                        </Column>
                     </DataTable>
                 </div>
             </div>

@@ -4,9 +4,8 @@ import { AdminAPIRequest as axios } from '@/plugins/APIServices';
 const store = JSON.parse(localStorage.getItem('auth.admin'));
 const dataHandler = ref();
 onMounted(async () => {
-    const passData = { username: store.username, token: store.token };
+    const passData = { username: store[0].username, token: store[0].token };
     const res = await axios.getWithdrawalHistory(passData);
-    console.log(res);
     dataHandler.value = res.data;
 });
 const statusFormat = (value) => {

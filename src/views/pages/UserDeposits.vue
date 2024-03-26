@@ -4,7 +4,7 @@ import { AdminAPIRequest as axios } from '@/plugins/APIServices';
 const store = JSON.parse(localStorage.getItem('auth.admin'));
 const dataHandler = ref();
 onMounted(async () => {
-    const passData = { username: store.username, token: store.token };
+    const passData = { username: store[0].username, token: store[0].token };
     const res = await axios.getDepositHistory(passData);
     dataHandler.value = res.data;
 });
@@ -17,6 +17,9 @@ const statusFormat = (value) => {
         default:
             return 'Pending';
     }
+};
+const formatCurrency = (value) => {
+    return value.toLocaleString('en-US', { style: 'currency', currency: 'PHP' });
 };
 </script>
 
@@ -36,7 +39,7 @@ const statusFormat = (value) => {
             </Column>
             <Column style="width: 10%" :sortable="true" field="country" header="Amount">
                 <template #body="slotProps">
-                    {{ slotProps.data.amount }}
+                    {{ formatCurrency(slotProps.data.amount) }}
                 </template>
             </Column>
             <Column style="width: 10%" :sortable="true" field="gameCredit" header="Status">

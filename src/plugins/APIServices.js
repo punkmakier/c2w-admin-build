@@ -94,6 +94,10 @@ export const AdminAPIRequest = {
     showAllPaymentMethod: async (data) => {
         return await post('/api/admin/showAllPaymentMethod', data);
     },
+    getPaymentGateway: async (data) => {
+        return await post('/api/admin/getPaymentGateway', data);
+    },
+
     postUpdatePaymentMethod: async (data) => {
         return await post('/api/admin/updatePaymentMethod', data);
     },
@@ -170,5 +174,19 @@ export const AdminAPIRequest = {
     },
     postLotteryFetchGame: async (data) => {
         return await postDec('/api/lottery/fetchGame', data);
+    },
+
+    // WITHDRAWALS
+    approveUserWithdrawal: async (data) => {
+        return await post('/api/approveUserWithdrawal', data);
+    },
+    approveAgentWithdrawal: async (data) => {
+        return await post('/api/approveAgentWithdrawal', data);
+    },
+    requestCountWithdraw: async (data) => {
+        return await post('/api/admin/requestCountWithdraw', data);
+    },
+    fetchCountChat: async (data) => {
+        return await post('/api/admin/fetchCountChat', data);
     }
 };

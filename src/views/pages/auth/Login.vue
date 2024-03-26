@@ -1,7 +1,7 @@
 <script setup>
 // import { useLayout } from '@/layout/composables/layout';
 import { useAuthStore } from '@/stores/auth.js';
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 const state = reactive({
     username: '',
@@ -28,6 +28,12 @@ const router = useRouter();
 //     }
 //     loading.value = false;
 // };
+
+onMounted(() => {
+    if (localStorage.getItem('auth.admin')) {
+        router.push('/admins');
+    }
+});
 
 const handleLogin = async () => {
     loading.value = true;

@@ -233,14 +233,17 @@ const closeArena = () => {
         acceptLabel: 'Confirm',
         accept: async () => {
             const res = await axios.postCloseArena({ username: store[0].username, token: store[0].token, arenaID: sabongData.arenaID });
-            console.log(res);
             if (res.error === 0) {
+                localStorage.removeItem('hasArena');
                 blockedBettingDec1.value = true;
                 blockedBettingDec.value = true;
                 arenaClose.value = true;
                 const passSocket = JSON.stringify({ type: 'sabong', arenaClosed: true });
                 socket.emit('chat-message', passSocket);
                 toast.add({ severity: 'success', summary: 'Success', detail: 'The arena is successfully closed.', life: 3000 });
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
             } else {
                 toast.add({ severity: 'error', summary: 'Error', detail: res.description, life: 3000 });
             }

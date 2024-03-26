@@ -19,7 +19,7 @@ const stateUser = reactive({
     isBan: false
 });
 onMounted(async () => {
-    const passData = { username: store.username, token: store.token };
+    const passData = { username: store[0].username, token: store[0].token };
     const res = await axios.postGetAllUsers(passData);
     dataHandler.value = res.data;
 });

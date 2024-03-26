@@ -5,7 +5,7 @@ const store = JSON.parse(localStorage.getItem('auth.admin'));
 const dataHandler = ref();
 
 onMounted(async () => {
-    const passData = { username: store.username, token: store.token };
+    const passData = { username: store[0].username, token: store[0].token };
     const res = await axios.getAgentWithdrawalHistory(passData);
     console.log(res);
     dataHandler.value = res.data;
@@ -26,18 +26,18 @@ const formatCurrency = (value) => {
     return value.toLocaleString('en-US', { style: 'currency', currency: 'PHP' });
 };
 
-const pmethod = (value) => {
-    switch (value) {
-        case '0':
-            return 'Paymaya';
-        case '7':
-            return 'GCash';
-        case '4':
-            return 'Bank';
-        default:
-            return 'N/A';
-    }
-};
+// const pmethod = (value) => {
+//     switch (value) {
+//         case '0':
+//             return 'Paymaya';
+//         case '7':
+//             return 'GCash';
+//         case '4':
+//             return 'Bank';
+//         default:
+//             return 'N/A';
+//     }
+// };
 </script>
 
 <template>
@@ -49,9 +49,9 @@ const pmethod = (value) => {
                     {{ slotProps.data.username }}
                 </template>
             </Column>
-            <Column style="width: 10%" :sortable="true" field="walletType" header="Wallet Type">
+            <Column style="width: 10%" :sortable="true" field="method" header="Method">
                 <template #body="slotProps">
-                    {{ slotProps.data.walletType }}
+                    {{ slotProps.data.method }}
                 </template>
             </Column>
             <Column style="width: 15%" :sortable="true" field="accountName" header="Account Name">
