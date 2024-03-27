@@ -22,9 +22,29 @@ onMounted(async () => {
     // Call the WebSocket setup when the component is created
     setupWebSocket();
     const fetchChatList = await axios.fetchChatList(passData);
+    console.log(fetchChatList);
     if (fetchChatList.resStatus === 0) {
         message_list.value = fetchChatList.data;
+        const guestChatS = fetchChatList.guestData.map((item) => {
+            item.is_online = 5;
+            return item;
+        });
+        guestChatS.forEach((element) => {
+            message_list.value.push(element);
+        });
         origMessageList.value = message_list.value;
+        // chat_id: '350',
+        // message: 'Ads',
+        // token: '3f2b2b0cce00520a06f6e63792c76c32',
+        // date: '2024-03-23 10:20:41.000',
+        // isGuest: 0,
+        // user_type: 'user',
+        // is_read: 1,
+        // deleted: 0,
+        // user_id: 1526,
+        // username: 'chowzn',
+        // is_online: 2,
+        // RowNum: '1'
     } else {
         alert('Something went wrong...');
     }
@@ -130,6 +150,13 @@ const handleIncomingMessage = async (event) => {
 
         if (fetchChatList.resStatus === 0) {
             message_list.value = fetchChatList.data;
+            const guestChatS = fetchChatList.guestData.map((item) => {
+                item.is_online = 5;
+                return item;
+            });
+            guestChatS.forEach((element) => {
+                message_list.value.push(element);
+            });
         } else {
             alert('Something went wrong...');
         }

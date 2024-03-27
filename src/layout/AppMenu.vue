@@ -50,6 +50,7 @@ const fetchCount = async () => {
 };
 const fetchCountChat = async () => {
     const res = await axios.fetchCountChat(passData);
+    console.log(res);
     if (res.resStatus === 0) {
         countChatUnread.value = res.count;
     }
