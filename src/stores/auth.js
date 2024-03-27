@@ -5,8 +5,6 @@ import { AdminAPIRequest as axios } from '@/plugins/APIServices.js';
 function handleStorageEvent(event) {
     if (typeof key !== 'undefined' && event.key === key) {
         val.value = JSON.parse(newValue || 'null');
-    } else {
-        return 'WEW';
     }
 }
 

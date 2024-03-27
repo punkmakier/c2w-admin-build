@@ -115,6 +115,7 @@ const submitCreateArena = async () => {
     const res = await axios.postCreateArena(dataCreate);
     btnLoading.value = false;
     if (res.error === 0) {
+        localStorage.setItem('hasArena', 'true');
         hasArena.value = true;
         showCreateArena.value = false;
         createArenaState.sabongType = { name: 'Short Knife', code: 'Short Knife' };
