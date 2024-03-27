@@ -257,8 +257,8 @@ const closeArena = () => {
 // Sample data from regladaData ref
 
 // Number of rows and columns in the table
-const numRows = 10;
-const numCols = 30;
+const numRows = 6;
+const numCols = 100;
 
 // Create a 2D array to store cell IDs
 const rows = ref(Array.from({ length: numRows }, () => Array.from({ length: numCols }, () => ({ cellID: '', class: '' }))));
@@ -340,8 +340,8 @@ const getClassName = (cellID) => {
 
 // STRIAGHT
 // Number of rows and columns in the table
-const numRowsStraight = 10;
-const numColsStraight = 30;
+const numRowsStraight = 6;
+const numColsStraight = 100;
 
 // Create a 2D array to store cell IDs
 const rowsStraight = ref(Array.from({ length: numRowsStraight }, () => Array.from({ length: numColsStraight }, () => ({ cellID: '', class: '' }))));

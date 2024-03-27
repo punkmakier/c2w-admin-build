@@ -38,7 +38,7 @@ const chartOptionsDonut = ref({
     }
 });
 const optionsTypeRequest = ref([]);
-
+const dateRangeBetHistory = ref();
 const store = JSON.parse(localStorage.getItem('auth.admin'));
 const storeMonitor = ref();
 const seriesDonut = ref();
@@ -62,6 +62,7 @@ const totalAvailablePaymentsProvider = ref();
 
 const adminMonitoring = async () => {
     const res = await axios.postAdminMonitoring(dataPass);
+    console.log(res);
     storeMonitor.value = res;
     seriesDonut.value = [res.successWithdraw, res.successDeposit, res.agentSuccessWithdraw];
     balanceProvider.toppay = res.toppay;
@@ -73,6 +74,7 @@ const adminMonitoring = async () => {
 
 const userWithdrawalRequest = ref();
 const agentWithdrawalRequest = ref();
+const selectedPlayerName = ref();
 const withdrawalRequest = async () => {
     const res = await axios.postUserReqWithdrawal(dataPass);
     userWithdrawalRequest.value = res.user_withdraw;
@@ -95,8 +97,9 @@ const selectedActionValue = (event) => {
             const passData = { ...dataPass, providerID: event.value.providerID, id: event.value.id };
             try {
                 const res = event.value.type === 'user' ? await axios.approveUserWithdrawal(passData) : await axios.approveAgentWithdrawal(passData);
-                if (res.error === 1) {
-                    toast.add({ severity: 'error', summary: 'Transaction Failed', detail: res.description, life: 5000 });
+                console.log(res);
+                if (res.ErrorCode === 1) {
+                    toast.add({ severity: 'error', summary: 'Transaction Failed', detail: res.ErrorMessage, life: 5000 });
                 } else if (res.resStatus === 0) {
                     toast.add({ severity: 'success', summary: 'Success', detail: 'Transaction request has been completed.', life: 5000 });
                 }
@@ -108,10 +111,9 @@ const selectedActionValue = (event) => {
 };
 
 const declinedWithdraw = (id, type) => {
-    console.log(id);
     confirm.require({
         target: event.currentTarget,
-        message: 'Do you want to delete this record?',
+        message: 'Do you want to decline this transaction?',
         icon: 'pi pi-info-circle',
         rejectClass: 'p-button-secondary p-button-outlined p-button-sm',
         acceptClass: 'p-button-danger p-button-sm',
@@ -143,15 +145,85 @@ const getPaymentGateway = async () => {
     }
 };
 
-const showHistoryCasino = async (data) => {
-    showHistoryCasinoList.value = null;
-    showHistoryListDialog.value = true;
-    console.log(dataPass);
-    const res = await axios.fetchHistoryCasino({ ...dataPass, playUsername: data });
+// const showHistoryCasino = async (data) => {
+// showHistoryCasinoList.value = null;
+// showHistoryListDialog.value = true;
+//     console.log(dataPass);
+//     const res = await axios.fetchHistoryCasino({ ...dataPass, playUsername: data });
+//     console.log(res);
+//     if (res.resStatus === 0) {
+//         showHistoryCasinoList.value = res.history;
+//     } else {
+//         toast.add({ severity: 'error', summary: 'No Bet History', detail: res.resMsg, life: 10000 });
+//     }
+// };
+
+const getFormattedDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+const getLast7Days = () => {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - 7); // 7 days ago
+
+    return getFormattedDate(startDate);
+};
+
+const dateToday = () => {
+    const currentDate = new Date();
+    return getFormattedDate(currentDate);
+};
+
+const dateStart = ref(getLast7Days());
+const getDateToday = ref(dateToday());
+
+const changeDateRangeBetHistory = async () => {
+    const splitDates = dateRangeBetHistory.value.map((dateString) => {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    console.log(splitDates);
+
+    const passData = {
+        ...dataPass,
+        playUsername: selectedPlayerName.value,
+        dateFrom: splitDates[0],
+        dateTo: splitDates[1]
+    };
+    const req = await axios.fetchHistoryCasino(passData);
+    if (req.resStatus === 0) {
+        showHistoryCasinoList.value = req.history;
+    } else {
+        showHistoryCasinoList.value = [];
+        toast.add({ severity: 'error', summary: 'No Bet History', detail: req.resMsg, life: 10000 });
+    }
+};
+
+const showHistoryByProvider = async (data) => {
+    dateRangeBetHistory.value = [new Date(dateStart.value), new Date(getDateToday.value)];
+    selectedPlayerName.value = data;
+    const splitDates = dateRangeBetHistory.value.map((dateString) => {
+        const date = new Date(dateString);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
+    console.log(splitDates);
+
+    const res = await axios.fetchHistoryCasino({ ...dataPass, playUsername: data, dateFrom: splitDates[0], dateTo: splitDates[1] });
     console.log(res);
     if (res.resStatus === 0) {
         showHistoryCasinoList.value = res.history;
+        showHistoryListDialog.value = true;
     } else {
+        showHistoryCasinoList.value = [];
         toast.add({ severity: 'error', summary: 'No Bet History', detail: res.resMsg, life: 10000 });
     }
 };
@@ -364,7 +436,7 @@ onMounted(() => {
                                         class="w-full md:w-14rem"
                                     />
                                     <Button label="Decline" @click="declinedWithdraw(slotProps.data.id, 'user')" />
-                                    <Button label="Bet History" @click="showHistoryCasino(slotProps.data.username)" outlined />
+                                    <Button label="Bet History" @click="showHistoryByProvider(slotProps.data.username)" outlined />
                                 </div>
                             </template>
                         </Column>
@@ -436,6 +508,13 @@ onMounted(() => {
             </div>
         </div>
         <Dialog v-model:visible="showHistoryListDialog" modal header="Bet History" :style="{ width: '100rem' }">
+            <div class="mb-2">
+                <label class="daterangetext">Select Dates</label>
+                <div class="" style="display: flex; align-items: center; gap: 15px">
+                    <Calendar v-model="dateRangeBetHistory" selectionMode="range" :manualInput="false" :numberOfMonths="2" />
+                    <Button label="Show" outlined @click="changeDateRangeBetHistory" />
+                </div>
+            </div>
             <DataTable :value="showHistoryCasinoList" tableStyle="min-width: 50rem" paginator :rows="10" :rowsPerPageOptions="[5, 10, 20, 50]">
                 <Column field="category" header="Username">
                     <template #body="slotProps">
@@ -443,7 +522,8 @@ onMounted(() => {
                     </template></Column
                 >
 
-                <Column field="before" header="Before">
+                <Column field="before" header="Before"
+                    >d
                     <template #body="slotProps">
                         {{ slotProps.data.before }}
                     </template></Column

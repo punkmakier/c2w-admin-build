@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router';
 import AppMenuItem from './AppMenuItem.vue';
 import { AdminAPIRequest as axios } from '@/plugins/APIServices';
 import { useToast } from 'primevue/usetoast';
+import { socket } from '@/socket';
 const router = useRouter();
 const toast = useToast();
 const hasArena = ref(false);
@@ -16,29 +17,49 @@ const logout = () => {
     localStorage.removeItem('auth.admin');
     router.push('/');
 };
+const handleIncomingMessage = async (event) => {
+    const data = JSON.parse(event);
+    if (data.type === 'withdraw') {
+        fetchCount();
+        return;
+    }
+    if (data.type === 'image' || data.type === 'text') {
+        fetchCountChat();
+        return;
+    }
+};
+const setupWebSocket = () => {
+    if (socket) {
+        socket.on('chat-message', (data) => {
+            handleIncomingMessage(data);
+        });
 
+        socket.on('connect', () => {
+            console.log('Connected to WebSocket server.');
+            // Your open event handling logic
+        });
+    } else {
+        console.error('Socket is not initialized properly.');
+    }
+};
 const fetchCount = async () => {
     const res = await axios.requestCountWithdraw(passData);
-    console.log(res);
     if (res.resStatus === 0) {
         countPendingWithdraw.value = res.count;
     }
 };
 const fetchCountChat = async () => {
     const res = await axios.fetchCountChat(passData);
-    console.log(res);
     if (res.resStatus === 0) {
         countChatUnread.value = res.count;
     }
 };
 
 onMounted(() => {
+    setupWebSocket();
     fetchCount();
     fetchCountChat();
-    setInterval(() => {
-        fetchCount();
-        fetchCountChat();
-    }, 30000);
+
     if (localStorage.getItem('hasArena')) {
         hasArena.value = true;
     }
@@ -80,7 +101,6 @@ const sabongTypeOptions = [
 const showCreateArena = ref(false);
 const createArena = () => {
     showCreateArena.value = true;
-    console.log('Asd');
 };
 
 const createArenaState = reactive({
@@ -93,13 +113,20 @@ const submitCreateArena = async () => {
     const dataCreate = { arenaName: createArenaState.sabongType.name, fightNumber: createArenaState.fightNumber, ...passData };
     console.log(dataCreate);
     const res = await axios.postCreateArena(dataCreate);
-    console.log(res);
     btnLoading.value = false;
     if (res.error === 0) {
         hasArena.value = true;
         showCreateArena.value = false;
         createArenaState.sabongType = { name: 'Short Knife', code: 'Short Knife' };
         createArenaState.fightNumber = null;
+        router.push('/arena');
+    } else if (res.error === 1 && res.description === 'Short Knife is active.') {
+        hasArena.value = true;
+        showCreateArena.value = false;
+        router.push('/arena');
+    } else if (res.error === 1 && res.description === 'Long Knife is active.') {
+        hasArena.value = true;
+        showCreateArena.value = false;
         router.push('/arena');
     } else {
         toast.add({ severity: 'error', summary: 'Error', detail: res.description });
